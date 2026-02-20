@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LINE Webchat Assignment
+
+## Introduction
+
+LINE Webchat Assignment is a simple webchat app that sends messages from a Next.js UI to a LINE Official Account using the LINE Messaging API (Push Message).
+
+It includes:
+- a chat screen at `/chat`
+- a send-message API route for LINE push
+- an optional webhook route for receiving LINE events
+
+## Tech Stack
+
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
 
 ## Getting Started
 
-First, run the development server:
+### 1) Install dependencies
+
+```bash
+npm install
+```
+
+### 2) Set environment variables
+
+Create a `.env.local` file in the project root:
+
+```bash
+LINE_CHANNEL_ACCESS_TOKEN=YOUR_LINE_CHANNEL_ACCESS_TOKEN
+LINE_TARGET_USER_ID=YOUR_TARGET_USER_ID
+LINE_CHANNEL_SECRET=YOUR_LINE_CHANNEL_SECRET
+```
+
+Notes:
+- `LINE_CHANNEL_ACCESS_TOKEN` and `LINE_TARGET_USER_ID` are required for sending messages.
+- `LINE_CHANNEL_SECRET` is required for webhook signature verification.
+
+### 3) Run development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How to use
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Open `http://localhost:3000/chat`.
+2. Type a message in the input box.
+3. Click **Send**.
+4. The app calls `/api/send-message`, then pushes your text to the LINE Official Account target user.
 
-## Learn More
+Optional webhook setup:
+- Configure LINE webhook URL to `/api/line/webhook` on your deployed domain.
+- Incoming events are validated and logged for debugging.
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment (Vercel)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push this project to a Git repository.
+2. Import the repository into Vercel.
+3. Add environment variables in Vercel Project Settings (`LINE_CHANNEL_ACCESS_TOKEN`, `LINE_TARGET_USER_ID`, `LINE_CHANNEL_SECRET`).
+4. Deploy and use your production URL.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For LINE webhook usage, set the webhook URL in LINE Developers Console to:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`https://<your-domain>/api/line/webhook`
