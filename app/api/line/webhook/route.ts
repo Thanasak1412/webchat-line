@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
-import { createHmac, timingSafeEqual } from "node:crypto";
-
-type LineWebhookEvent = {
-  type: string;
-  [key: string]: unknown;
-};
-
-type LineWebhookRequestBody = {
-  destination?: string;
-  events: LineWebhookEvent[];
-};
+import { appendMessage } from "@/lib/chatStore";
+import { verifyLineSignature } from "@/lib/lineSignature";
+import {
+  extractIncomingTextMessages,
+  type LineWebhookRequestBody,
+} from "@/lib/lineWebhook";
+import {
+  extractTargetFromEvent,
+  collectTargetsFromEvents,
+} from "@/lib/lineTargetId";
+import { recordMessageSource } from "@/lib/messageSourceTracker";
 
 type WebhookResponse = {
   received: true;
+  textMessageCount: number;
 };
 
 type WebhookErrorResponse = {
@@ -20,71 +21,81 @@ type WebhookErrorResponse = {
   error: string;
 };
 
-function isValidLineSignature({
-  rawBody,
-  signature,
-  channelSecret,
-}: {
-  rawBody: string;
-  signature: string;
-  channelSecret: string;
-}) {
-  const computedSignature = createHmac("sha256", channelSecret)
-    .update(rawBody, "utf8")
-    .digest("base64");
-
-  const receivedSignatureBuffer = Buffer.from(signature, "utf8");
-  const computedSignatureBuffer = Buffer.from(computedSignature, "utf8");
-
-  return (
-    receivedSignatureBuffer.length === computedSignatureBuffer.length &&
-    timingSafeEqual(receivedSignatureBuffer, computedSignatureBuffer)
-  );
-}
-
 export async function POST(request: Request) {
+  console.log("[LINE Webhook] Received a webhook event");
+
   try {
     const channelSecret = process.env.LINE_CHANNEL_SECRET;
-    const signatureHeader = request.headers.get("x-line-signature");
+    const signatureHeader = request.headers.get("X-Line-Signature");
     const rawBody = await request.text();
 
     if (!channelSecret) {
       return NextResponse.json<WebhookErrorResponse>(
         { received: false, error: "LINE_CHANNEL_SECRET is not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
+
+    console.log("[LINE Webhook] Raw request body:", rawBody);
 
     if (!signatureHeader) {
       return NextResponse.json<WebhookErrorResponse>(
         { received: false, error: "Missing X-Line-Signature header" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    const isValidSignature = isValidLineSignature({
+    const isValidSignature = verifyLineSignature({
       rawBody,
       signature: signatureHeader,
       channelSecret,
     });
 
     if (!isValidSignature) {
+      console.log("[LINE Webhook] Invalid signature");
       return NextResponse.json<WebhookErrorResponse>(
         { received: false, error: "Invalid signature" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const body = JSON.parse(rawBody) as LineWebhookRequestBody;
-    const events = Array.isArray(body.events) ? body.events : [];
+    const textMessages = extractIncomingTextMessages(body);
 
-    console.log("LINE webhook events:", events);
+    console.log(`[LINE Webhook] Extracted ${textMessages.length} text message(s) from the webhook event`);
+    
+    // Collect all unique target IDs from this webhook batch
+    if (Array.isArray(body.events) && body.events.length > 0) {
+      const collectedTargets = collectTargetsFromEvents(body.events);
 
-    return NextResponse.json<WebhookResponse>({ received: true }, { status: 200 });
+      // Record each discovered target
+      collectedTargets.forEach((target) => {
+        recordMessageSource(target.id);
+      });
+
+      // Debug: Log discovered targets
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `[LINE Webhook] Discovered ${collectedTargets.length} target(s):`,
+        );
+        collectedTargets.forEach((target) => {
+          console.log(`  - ${target.type.toUpperCase()}: ${target.id}`);
+        });
+      }
+    }
+
+    textMessages.forEach((text) => {
+      appendMessage(text, "line");
+    });
+
+    return NextResponse.json<WebhookResponse>(
+      { received: true, textMessageCount: textMessages.length },
+      { status: 200 },
+    );
   } catch {
     return NextResponse.json<WebhookErrorResponse>(
       { received: false, error: "Invalid JSON body" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

@@ -1,156 +1,65 @@
 import { NextResponse } from "next/server";
+import { appendMessage } from "@/lib/chatStore";
+import { pushTextMessage } from "@/lib/lineClient";
+import type {
+  ApiErrorResponse,
+  ApiSuccessResponse,
+  SendMessageRequestBody,
+} from "@/lib/types";
 
-type SendMessageRequestBody = {
-	message: string;
-};
+const MISSING_LINE_ENV_ERROR =
+  "LINE_CHANNEL_ACCESS_TOKEN or LINE_TARGET_USER_ID is not configured";
 
-type SendMessageSuccessResponse = {
-	success: true;
-};
-
-type SendMessageErrorResponse = {
-	success: false;
-	error: string;
-};
-
-type LinePushMessageRequest = {
-	to: string;
-	messages: Array<{
-		type: "text";
-		text: string;
-	}>;
-};
-
-type LineApiErrorBody = {
-	message?: string;
-};
-
-const LINE_PUSH_ENDPOINT = "https://api.line.me/v2/bot/message/push";
-
-function jsonError(error: string, status: number) {
-	return NextResponse.json<SendMessageErrorResponse>({ success: false, error }, { status });
+function jsonError(error: string, status: number): NextResponse<ApiErrorResponse> {
+  return NextResponse.json<ApiErrorResponse>({ success: false, error }, { status });
 }
 
-function parseMessageFromBody(body: SendMessageRequestBody) {
-	return typeof body.message === "string" ? body.message.trim() : "";
+function jsonSuccess(): NextResponse<ApiSuccessResponse> {
+  return NextResponse.json<ApiSuccessResponse>({ success: true }, { status: 200 });
 }
 
-function buildLinePayload(targetUserId: string, message: string): LinePushMessageRequest {
-	return {
-		to: targetUserId,
-		messages: [{ type: "text", text: message }],
-	};
+function parseMessageFromBody(body: SendMessageRequestBody): string {
+  return typeof body.message === "string" ? body.message.trim() : "";
 }
 
-async function postLinePushMessage({
-	channelAccessToken,
-	payload,
-}: {
-	channelAccessToken: string;
-	payload: LinePushMessageRequest;
-}): Promise<{ response: Response } | { error: string }> {
-	try {
-		const response = await fetch(LINE_PUSH_ENDPOINT, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${channelAccessToken}`,
-			},
-			body: JSON.stringify(payload),
-			cache: "no-store",
-		});
+export async function POST(
+  request: Request
+): Promise<NextResponse<ApiSuccessResponse | ApiErrorResponse>> {
+  try {
+    // Parse and validate incoming body.
+    const body = (await request.json()) as SendMessageRequestBody;
+    const message = parseMessageFromBody(body);
 
-		return { response } as const;
-	} catch (error) {
-		console.error("[send-message] LINE API fetch failed:", error);
-		return { error: "Failed to reach LINE API" } as const;
-	}
-}
+    if (!message) {
+      return jsonError("Message is required", 400);
+    }
 
-async function readResponseTextSafely(response: Response) {
-	try {
-		return await response.text();
-	} catch (error) {
-		console.error("[send-message] Failed reading LINE response body:", error);
-		return "";
-	}
-}
+    const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    const targetUserId = process.env.LINE_TARGET_USER_ID;
 
-function getLineErrorMessage(lineResponseBodyText: string) {
-	if (!lineResponseBodyText) {
-		return "LINE push API request failed";
-	}
+    if (!channelAccessToken || !targetUserId) {
+      return jsonError(MISSING_LINE_ENV_ERROR, 500);
+    }
 
-	try {
-		const lineErrorBody = JSON.parse(lineResponseBodyText) as LineApiErrorBody;
-		if (typeof lineErrorBody.message === "string" && lineErrorBody.message) {
-			return lineErrorBody.message;
-		}
-	} catch {
-		return lineResponseBodyText;
-	}
+    // Push outgoing message to LINE OA target user/group.
+    const lineResult = await pushTextMessage({
+      channelAccessToken,
+      to: targetUserId,
+      text: message,
+    });
 
-	return lineResponseBodyText;
-}
+    if (!lineResult.ok) {
+      return jsonError(lineResult.error, lineResult.status);
+    }
 
-export async function POST(request: Request) {
-	try {
-		const body = (await request.json()) as SendMessageRequestBody;
-		const message = parseMessageFromBody(body);
-
-		console.log("[send-message] Incoming request body:", {
-			message,
-			messageLength: message.length,
-		});
-
-		if (!message) {
-			return jsonError("Message is required", 400);
-		}
-
-		const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-		const targetUserId = process.env.LINE_TARGET_USER_ID;
-
-		if (!channelAccessToken || !targetUserId) {
-			return jsonError(
-				"LINE_CHANNEL_ACCESS_TOKEN or LINE_TARGET_USER_ID is not configured",
-				500
-			);
-		}
-
-		const payload = buildLinePayload(targetUserId, message);
-		const lineResult = await postLinePushMessage({ channelAccessToken, payload });
-
-		if ("error" in lineResult) {
-			return jsonError(lineResult.error, 502);
-		}
-
-		const lineResponse = lineResult.response;
-		const lineResponseBodyText = await readResponseTextSafely(lineResponse);
-
-		console.log("[send-message] LINE API response:", {
-			status: lineResponse.status,
-			ok: lineResponse.ok,
-			body: lineResponseBodyText,
-		});
-
-		if (!lineResponse.ok) {
-			const lineErrorMessage = getLineErrorMessage(lineResponseBodyText);
-			return jsonError(lineErrorMessage, lineResponse.status);
-		}
-
-		return NextResponse.json<SendMessageSuccessResponse>(
-			{ success: true },
-			{ status: 200 }
-		);
-	} catch (error) {
-		console.error("[send-message] Unexpected handler error:", error);
-		const isInvalidJson = error instanceof SyntaxError;
-		return NextResponse.json<SendMessageErrorResponse>(
-			{
-				success: false,
-				error: isInvalidJson ? "Invalid request body" : "Internal server error",
-			},
-			{ status: isInvalidJson ? 400 : 500 }
-		);
-	}
+    // Keep local chat history in sync with outbound messages.
+    appendMessage(message, "me");
+    return jsonSuccess();
+  } catch (error) {
+    const isInvalidJson = error instanceof SyntaxError;
+    return jsonError(
+      isInvalidJson ? "Invalid request body" : "Internal server error",
+      isInvalidJson ? 400 : 500
+    );
+  }
 }
