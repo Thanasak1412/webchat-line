@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:webhook": "node test-webhook.js",
+    "test:webhook:ngrok": "node test-webhook.js https://$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o '\"public_url\":\"[^\"]*' | cut -d'\"' -f4 | head -1)",
+    "test:diagnostics": "curl http://localhost:3000/api/diagnostics | jq .",
+    "test:webhook-unsafe": "curl -X POST http://localhost:3000/api/diagnostics/test-webhook -H 'Content-Type: application/json' -d @test-payload.json"
   },
   "dependencies": {
     "next": "16.1.6",

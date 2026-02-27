@@ -1,151 +1,210 @@
-# LINE OA Webchat (Next.js + TypeScript)
+# LINE Official Account Webchat Admin Dashboard
 
-A production-ready Next.js application that enables **sending messages to and receiving messages from a LINE Official Account**. Built with **Next.js App Router**, **TypeScript**, and **Tailwind CSS**.
+A complete admin-side webchat system for LINE Official Account (OA) built with **Next.js 16**, **React 19**, and **TypeScript 5**. 
 
-## 📋 Table of Contents
+Enables LINE users to send messages to your Official Account, and admins to view conversations and reply in real-time via a modern web interface.
 
-1. [Features](#features)
-2. [Project Structure](#project-structure)
-3. [Prerequisites](#prerequisites)
-4. [Environment Setup](#environment-setup)
-5. [Local Development](#local-development)
-6. [API Documentation](#api-documentation)
-7. [Target Discovery Guide](#target-discovery-apis--new)
-8. [LINE Developer Setup](#line-developer-setup)
-9. [Webhook Configuration](#webhook-configuration)
-10. [Deployment on Vercel](#deployment-on-vercel)
-11. [TypeScript Types](#typescript-types)
-12. [Troubleshooting](#troubleshooting)
-13. [Architecture & Improvements](#architecture--improvements)
+**[📱 Live Demo](#)** • **[🚀 Deploy to Vercel](#)** • **[📖 Full Documentation](#)** • **[💬 GitHub Issues](#)**
 
----
+## Overview
 
-## ✨ Features
-
-### Core Features
-- ✅ **Send Messages**: Push text messages from web UI to LINE OA
-- ✅ **Receive Messages**: Webhook integration to receive LINE OA replies
-- ✅ **Real-time Chat UI**: Responsive chat interface with polling support
-- ✅ **Signature Verification**: HMAC-SHA256 verification for webhook security
-- ✅ **TypeScript**: Full type safety across frontend and backend
-- ✅ **Error Handling**: Graceful error handling with user-friendly messages
-- ✅ **Production-Ready**: Vercel-compatible, optimized for serverless
-
-### Target Discovery ✨ (NEW)
-- ✅ **Auto-Discovery**: Automatically discover user/group/room IDs from webhook events
-- ✅ **Target Management**: Query and list all discovered targets
-- ✅ **Dynamic Messaging**: Send messages to specific targets without manual ID configuration
-- ✅ **Statistics**: Get engagement metrics by target type
-- **[Learn more →](./LINE_TARGET_DISCOVERY.md)**
-
-### Technical Highlights
-- In-memory message store with bounded size (200 messages max)
-- Automatic target tracking (up to 100 sources)
-- Polling-based message synchronization (3-second intervals)
-- LINE Messaging API v2 integration
-- Webhook signature validation using `X-Line-Signature` header
-- Clean separation of concerns (client/server/lib)
-- No external database required for MVP
-
----
-
-## 📁 Project Structure
+This project provides a complete solution for managing LINE Official Account conversations from a web-based admin dashboard:
 
 ```
-webchat-line/
-├── app/
-│   ├── api/
-│   │   ├── line/
-│   │   │   ├── push/route.ts           # Alternative send message endpoint
-│   │   │   ├── targets/route.ts        # Get all discovered targets (NEW)
-│   │   │   ├── targets/stats/route.ts  # Get target statistics (NEW)
-│   │   │   ├── send-to-target/route.ts # Send to specific target (NEW)
-│   │   │   └── webhook/route.ts        # Webhook handler with signature verification
-│   │   ├── messages/route.ts           # GET polling endpoint
-│   │   ├── send-message/route.ts       # POST send message endpoint
-│   │   └── webhook/route.ts            # Alias to /api/line/webhook
-│   ├── chat/
-│   │   ├── ChatUI.tsx                  # Client-side chat UI (React)
-│   │   └── page.tsx                    # /chat route
-│   ├── globals.css                     # Tailwind CSS styles
-│   ├── layout.tsx                      # Root layout wrapper
-│   └── page.tsx                        # Home page (/)
-├── lib/
-│   ├── chatStore.ts                    # In-memory message storage
-│   ├── lineClient.ts                   # LINE Messaging API HTTP client
-│   ├── lineSignature.ts                # HMAC signature verification
-│   ├── lineTargetId.ts                 # Target ID extraction & validation (NEW)
-│   ├── lineWebhook.ts                  # Webhook payload parser
-│   ├── messageSourceTracker.ts         # Message source tracking (NEW)
-│   └── types.ts                        # TypeScript type definitions
-├── public/                             # Static assets
-├── .env.local.example                  # Environment variables template
-├── eslint.config.mjs                   # ESLint configuration
-├── next.config.ts                      # Next.js configuration
-├── postcss.config.mjs                  # PostCSS configuration
-├── tailwind.config.cjs                 # Tailwind CSS configuration
-├── tsconfig.json                       # TypeScript configuration
-├── package.json                        # Node.js dependencies
-├── LINE_TARGET_DISCOVERY.md            # Target discovery feature guide (NEW)
-└── README.md                           # This file
+LINE User sends message
+    ↓
+[LINE Messaging API] → POST /api/line/webhook
+    ↓
+Admin sees message in real-time (SSE)
+    ↓
+Admin replies via dashboard
+    ↓
+[LINE Messaging API] → Message sent back to user
 ```
 
+**Key Benefits:**
+- ✅ Real-time multi-user chat interface
+- ✅ Works with existing LINE OA (no channel creation needed)
+- ✅ Zero external dependencies for chat logic
+- ✅ Secure webhook signature verification
+- ✅ Deployable to Vercel in 2 minutes
+- ✅ TypeScript with full type safety
+- ✅ Responsive design with TailwindCSS
+
 ---
 
-## 📦 Prerequisites
+## Features
 
-- **Node.js** ≥ 18.x
-- **npm** or **yarn**
-- **LINE Developer Account** (free at https://developers.line.biz/)
-- **Vercel Account** (for deployment)
-- **GitHub Account** (to host repository)
+### Admin Dashboard
+- **Split-screen layout:** Users list (left) + Chat window (right)
+- **User profiles:** Displays user names and profile pictures from LINE
+- **Real-time updates:** See incoming messages instantly via SSE (Server-Sent Events)
+- **User management:** Click any user to view conversation history
+- **Quick reply:** Type and send messages directly to LINE users
+- **Message styling:** Different colors for inbox (gray) vs. sent (blue)
+- **Responsive design:** Works on desktop, tablet, and mobile
+- **Timestamps:** Every message shows when it was sent/received
+- **Profile caching:** 30-minute cache to minimize API calls to LINE servers
+
+### Webhook System
+- **Automatic message ingestion:** Receives messages from LINE Messaging API
+- **HMAC-SHA256 verification:** Ensures requests are authentic (only from LINE)
+- **Per-user storage:** Keeps messages organized by user ID
+- **Event logging:** Detailed console logs for debugging and monitoring
+- **HTTP 200 compliance:** Always returns 200 OK to LINE (as required)
+
+### Real-Time Updates
+- **Server-Sent Events (SSE):** Pushes messages to connected admins instantly
+- **Fallback polling:** 3-second polling for clients that don't support SSE
+- **Multi-admin support:** Multiple admins can view same conversation simultaneously
+- **Connection management:** Automatic reconnection on network failures
+
+### Message Management
+- **In-memory storage:** Fast access to recent conversations (200 messages per user max)
+- **API endpoints:** Retrieve users, get messages, send replies
+- **Unique message IDs:** Every message gets a UUID for tracking
+- **Timestamps:** ISO 8601 format for consistency
 
 ---
 
-## 🔐 Environment Setup
+## Tech Stack
 
-### 1. Create `.env.local`
+### Frontend
+- **React 19.2** - UI framework with hooks
+- **Next.js 16.1** - App Router (not Pages Router)
+- **TailwindCSS 4** - Utility-first CSS
+- **TypeScript 5** - Full type safety
 
-Copy the template file and add your LINE credentials:
+### Backend
+- **Next.js API Routes** - Serverless functions
+- **Server-Sent Events** - Real-time push updates
+- **In-Memory Storage** - Fast message persistence
+- **HMAC-SHA256** - Webhook signature verification
+
+### External Services
+- **LINE Messaging API v2** - Send/receive messages
+- **Vercel** - Recommended hosting (optional)
+- **ngrok** - Public tunnel for local development
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js 18+** and npm
+- **LINE Official Account** (existing or new)
+- **Channel Access Token** and **Channel Secret** from LINE console
+
+### Quick Start (5 minutes)
+
+#### 1. Clone & Install
+```bash
+git clone https://github.com/yourusername/webchat-line.git
+cd webchat-line
+npm install
+```
+
+#### 2. Configure Environment Variables
+Create `.env.local`:
+```env
+LINE_CHANNEL_SECRET=your_channel_secret_here
+LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token_here
+```
+
+**Where to find these?**
+1. Go to [LINE Official Account Manager](https://manager.line.biz/)
+2. Select your OA → **Settings** → **Basic Settings**
+3. Copy:
+   - **Channel Secret** (⚙️ Settings section)
+   - **Channel Access Token** (🔑 Messaging API section)
+
+#### 3. Start Development Server
+```bash
+npm run dev
+```
+
+Server runs at: `http://localhost:3000`
+
+#### 4. Set Up Public Tunnel (ngrok)
+
+LINE requires a publicly accessible HTTPS endpoint. Use ngrok:
 
 ```bash
-cp .env.local.example .env.local
+# Download from https://ngrok.com/download
+# Or: brew install ngrok (macOS)
+
+ngrok http 3000
 ```
 
-Edit `.env.local`:
-
-```env
-# Required: LINE Messaging API credentials
-LINE_CHANNEL_ACCESS_TOKEN=YOUR_CHANNEL_ACCESS_TOKEN
-LINE_CHANNEL_SECRET=YOUR_CHANNEL_SECRET  
-LINE_TARGET_USER_ID=YOUR_USER_OR_GROUP_ID
-
-# Optional: For debugging
-# NODE_ENV=development
+You'll see output like:
+```
+Forwarding     https://abc123.ngrok.io → http://localhost:3000
 ```
 
-### 2. Obtain LINE Credentials
+#### 5. Register Webhook URL
 
-**Channel Access Token:**
-1. Go to [LINE Developers Console](https://developers.line.biz/)
-2. Select your channel > **Messaging API**
-3. Find **Channel access token** section
-4. Click **Issue** (if not already issued)
-5. Copy the token
+1. Go to [LINE Official Account Manager](https://manager.line.biz/)
+2. Select your OA → **Settings** → **Basic Settings**
+3. Find **Webhook URL** section
+4. Enter: `https://abc123.ngrok.io/api/line/webhook`
+5. Click **Verify** button
 
-**Channel Secret:**
-1. Go to your channel
-2. Click **Basic settings**
-3. Find **Channel secret**
-4. Copy the value
+#### 6. Open Admin Dashboard
 
-**Target User ID:**
-1. Add your official account as a friend
-2. Send any message from the chat
-3. Check the [LINE Developers Console Webhook Test Tool](https://developers.line.biz/console/)
-4. Your User ID appears in the test webhook payload under `events[0].source.userId`
+```
+http://localhost:3000/chat
+```
 
-Example User ID: `Uab1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q`
+#### 7. Test with LINE App
+
+1. Add your OA to your LINE account
+2. Send a message from the mobile app
+3. **Watch the admin dashboard** - message should appear in real-time! 🎉
+
+---
+
+## Environment Variables
+
+### Required
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `LINE_CHANNEL_SECRET` | Channel secret from LINE console | `abcd1234efgh5678...` |
+| `LINE_CHANNEL_ACCESS_TOKEN` | Channel access token for API calls | `Bearer xyz789...` |
+
+### Optional
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `NODE_ENV` | Environment (development/production) | `development` |
+| `PORT` | Server port | `3000` |
+
+### Get Your Credentials
+
+1. **Go to LINE Official Account Manager:**
+   - https://manager.line.biz/
+
+2. **Navigate to Channel Settings:**
+   - Select your OA
+   - Go to **Settings** → **Basic Settings**
+
+3. **Find Messaging API Section:**
+   - **Channel Secret** - Copy and paste to `LINE_CHANNEL_SECRET`
+   - **Channel Access Token** - Copy and paste to `LINE_CHANNEL_ACCESS_TOKEN`
+
+4. **Create `.env.local` file:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+5. **Paste your credentials:**
+   ```env
+   LINE_CHANNEL_SECRET=your_secret_here
+   LINE_CHANNEL_ACCESS_TOKEN=your_token_here
+   ```
+
+⚠️ **Never commit `.env.local` to git!** It's in `.gitignore` by default.
 
 ---
 

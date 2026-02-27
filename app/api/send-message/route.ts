@@ -1,65 +1,43 @@
 import { NextResponse } from "next/server";
 import { appendMessage } from "@/lib/chatStore";
-import { pushTextMessage } from "@/lib/lineClient";
-import type {
-  ApiErrorResponse,
-  ApiSuccessResponse,
-  SendMessageRequestBody,
-} from "@/lib/types";
 
-const MISSING_LINE_ENV_ERROR =
-  "LINE_CHANNEL_ACCESS_TOKEN or LINE_TARGET_USER_ID is not configured";
-
-function jsonError(error: string, status: number): NextResponse<ApiErrorResponse> {
-  return NextResponse.json<ApiErrorResponse>({ success: false, error }, { status });
-}
-
-function jsonSuccess(): NextResponse<ApiSuccessResponse> {
-  return NextResponse.json<ApiSuccessResponse>({ success: true }, { status: 200 });
-}
-
-function parseMessageFromBody(body: SendMessageRequestBody): string {
-  return typeof body.message === "string" ? body.message.trim() : "";
-}
-
-export async function POST(
-  request: Request
-): Promise<NextResponse<ApiSuccessResponse | ApiErrorResponse>> {
+export async function POST(request: Request) {
   try {
-    // Parse and validate incoming body.
-    const body = (await request.json()) as SendMessageRequestBody;
-    const message = parseMessageFromBody(body);
-
-    if (!message) {
-      return jsonError("Message is required", 400);
-    }
-
+    const { userId, text } = await request.json();
     const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-    const targetUserId = process.env.LINE_TARGET_USER_ID;
 
-    if (!channelAccessToken || !targetUserId) {
-      return jsonError(MISSING_LINE_ENV_ERROR, 500);
+    if (!channelAccessToken) {
+      return NextResponse.json({ error: "LINE_CHANNEL_ACCESS_TOKEN not set" }, { status: 500 });
     }
 
-    // Push outgoing message to LINE OA target user/group.
-    const lineResult = await pushTextMessage({
-      channelAccessToken,
-      to: targetUserId,
-      text: message,
+    if (!userId || !text) {
+      return NextResponse.json({ error: "userId and text are required" }, { status: 400 });
+    }
+
+    // Call LINE Messaging API directly
+    const response = await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${channelAccessToken}`,
+      },
+      body: JSON.stringify({
+        to: userId,
+        messages: [{ type: "text", text }],
+      }),
     });
 
-    if (!lineResult.ok) {
-      return jsonError(lineResult.error, lineResult.status);
+    if (!response.ok) {
+      const errorData = await response.json();
+      return NextResponse.json({ error: errorData.message || "Failed to send message" }, { status: response.status });
     }
 
-    // Keep local chat history in sync with outbound messages.
-    appendMessage(message, "me");
-    return jsonSuccess();
+    // Save to local store
+    appendMessage(userId, text, "me");
+
+    return NextResponse.json({ ok: true, userId, text }, { status: 200 });
   } catch (error) {
-    const isInvalidJson = error instanceof SyntaxError;
-    return jsonError(
-      isInvalidJson ? "Invalid request body" : "Internal server error",
-      isInvalidJson ? 400 : 500
-    );
+    console.error("Error sending message:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

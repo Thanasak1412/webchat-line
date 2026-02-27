@@ -6,6 +6,8 @@
  * - https://developers.line.biz/en/docs/messaging-api/message-event/
  */
 
+import { LineMessage } from "./types";
+
 /**
  * LINE Webhook request body
  * @see https://developers.line.biz/en/docs/messaging-api/receive-webhook-events/
@@ -36,14 +38,7 @@ export interface LineWebhookEvent {
     roomId?: string;
   };
   /** Message content (only for message events) */
-  message?: {
-    /** Message type: "text", "image", "video", "audio", "file", "location", "sticker" */
-    type?: string;
-    /** Message ID */
-    id?: string;
-    /** Text content (for text messages) */
-    text?: string;
-  };
+  message?: LineMessage;
 }
 
 /**

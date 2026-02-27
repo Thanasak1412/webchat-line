@@ -6,9 +6,25 @@
  * References:
  * - https://developers.line.biz/en/docs/messaging-api/
  * - https://developers.line.biz/en/docs/messaging-api/using-push-api/
+ * - https://developers.line.biz/en/docs/messaging-api/getting-user-profile/
  */
 
 const LINE_PUSH_ENDPOINT = "https://api.line.me/v2/bot/message/push";
+const LINE_GET_PROFILE_ENDPOINT = "https://api.line.me/v2/bot/profile";
+
+/**
+ * LINE user profile response
+ */
+export interface LineUserProfile {
+  /** User ID */
+  userId: string;
+  /** User's display name */
+  displayName: string;
+  /** URL of the user's profile picture */
+  pictureUrl: string;
+  /** User's status message (if any) */
+  statusMessage: string;
+}
 
 /**
  * LINE Push Message API request body
@@ -156,5 +172,45 @@ export async function pushTextMessage({
       status: 502,
       error: "Failed to reach LINE API",
     };
+  }
+}
+/**
+ * Get LINE user profile information (name, avatar, status)
+ * 
+ * @param channelAccessToken - Channel Access Token from LINE Developers Console
+ * @param userId - The LINE user ID to fetch profile for
+ * @returns User profile or null if fetch fails
+ * 
+ * @example
+ * ```typescript
+ * const profile = await getUserProfile(token, "Uab...");
+ * if (profile) {
+ *   console.log(`Hello ${profile.displayName}!`);
+ * }
+ * ```
+ */
+export async function getUserProfile(
+  channelAccessToken: string,
+  userId: string
+): Promise<LineUserProfile | null> {
+  try {
+    const response = await fetch(`${LINE_GET_PROFILE_ENDPOINT}/${userId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${channelAccessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch profile for user ${userId}: ${response.status}`);
+      return null;
+    }
+
+    const profile = (await response.json()) as LineUserProfile;
+    return profile;
+  } catch (error) {
+    console.error(`Error fetching profile for user ${userId}:`, error);
+    return null;
   }
 }

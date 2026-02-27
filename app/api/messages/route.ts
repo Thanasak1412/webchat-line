@@ -1,16 +1,37 @@
 import { NextResponse } from "next/server";
-import { getMessages } from "@/lib/chatStore";
+import { getMessages, getActiveUsers } from "@/lib/chatStore";
 import type { ApiErrorResponse, ApiSuccessResponse, ChatMessage } from "@/lib/types";
 
-export async function GET(): Promise<
-  NextResponse<ApiSuccessResponse<{ messages: ChatMessage[] }> | ApiErrorResponse>
-> {
+export async function GET(
+  request: Request
+): Promise<NextResponse<ApiSuccessResponse<{ users: string[]; messages: ChatMessage[] }> | ApiErrorResponse>> {
   try {
-    return NextResponse.json<ApiSuccessResponse<{ messages: ChatMessage[] }>>(
+    const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
+
+    // If no userId provided, return list of active users
+    if (!userId) {
+      const users = getActiveUsers();
+      return NextResponse.json<ApiSuccessResponse<{ users: string[]; messages: ChatMessage[] }>>(
+        {
+          success: true,
+          data: {
+            users,
+            messages: [],
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    // Return messages for specific user
+    const messages = getMessages(userId);
+    return NextResponse.json<ApiSuccessResponse<{ users: string[]; messages: ChatMessage[] }>>(
       {
         success: true,
         data: {
-          messages: getMessages(),
+          users: [],
+          messages,
         },
       },
       { status: 200 }

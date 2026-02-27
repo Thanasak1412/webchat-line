@@ -141,7 +141,8 @@ export async function POST(
     // Store in local chat history
     // Note: We can't easily track which target this came from in the current chatStore
     // Consider extending chatStore to track target IDs
-    appendMessage(`[To ${getTargetTypeLabel(source?.type ?? null)}] ${message}`, "me");
+    // For now, we associate it with the targetId so it shows up in that chat context
+    appendMessage(targetId, `[To ${getTargetTypeLabel(source?.type ?? null)}] ${message}`, "me");
 
     const targetTypeLabel = source ? getTargetTypeLabel(source.type) : "Unknown";
 

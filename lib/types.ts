@@ -4,9 +4,33 @@
  */
 
 /**
+ * LINE User Profile
+ * Data from LINE Profile API
+ */
+export interface LineUserProfile {
+  userId: string;
+  displayName: string;
+  pictureUrl?: string; // Optional because not all users have a picture
+  statusMessage?: string; // Optional status message
+}
+
+/**
+ * LINE Message Object
+ * Represents a message event from LINE Webhook
+ */
+export interface LineMessage {
+  type: "text" | "image" | "video" | "audio" | "file" | "location" | "sticker";
+  id: string;
+  text?: string; // Only for text messages
+  // Add other properties as needed for other message types
+}
+
+/**
  * Who sent a chat message
  */
 export type ChatSender = "me" | "line" | "system";
+
+
 
 /**
  * A message in the chat

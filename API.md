@@ -79,7 +79,78 @@ curl http://localhost:3000/api/messages
 
 ---
 
-### 2. POST /api/send-message
+### 2. GET /api/line/profile
+
+Fetch LINE user profile information (name, avatar, status).
+
+**Description:** Retrieves the user's display name, profile picture, and status message from LINE Messaging API. Results are cached for 30 minutes to minimize API calls.
+
+**Method:** `GET`
+
+**Authentication:** Server uses `LINE_CHANNEL_ACCESS_TOKEN` (from environment)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `userId` | string | Yes | The LINE user ID to fetch profile for |
+
+**Request Example:**
+
+```bash
+curl "http://localhost:3000/api/line/profile?userId=Uab1234567890abcdef1234567890ab"
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "Uab1234567890abcdef1234567890ab",
+    "displayName": "John Doe",
+    "pictureUrl": "https://example.com/profile.jpg",
+    "statusMessage": "Hello, World!"
+  }
+}
+```
+
+**Response (Fallback - if fetch fails):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "Uab1234567890abcdef1234567890ab",
+    "displayName": "Uab123...",
+    "pictureUrl": "",
+    "statusMessage": ""
+  }
+}
+```
+
+**Error Response (400):**
+
+```json
+{
+  "success": false,
+  "error": "userId is required"
+}
+```
+
+**Caching:**
+- Profiles are cached in memory for **30 minutes**
+- The cache is reset when the server restarts
+- Cache is per-instance (not shared across processes)
+
+**Notes:**
+- Returns a graceful fallback with userId if LINE API is unreachable
+- Used by the admin dashboard to show user names and avatars in the user list
+- Fallback display shows truncated userId instead of raw ID if profile fetch fails
+
+---
+
+### 3. POST /api/send-message
 
 Send a text message to the LINE Official Account.
 
@@ -172,7 +243,7 @@ curl -X POST http://localhost:3000/api/send-message \
 
 ---
 
-### 3. POST /api/line/push
+### 4. POST /api/line/push
 
 Alternative endpoint for sending messages (equivalent to `/api/send-message`).
 
@@ -205,7 +276,7 @@ curl -X POST http://localhost:3000/api/line/push \
 
 ---
 
-### 4. POST /api/webhook
+### 5. POST /api/webhook
 
 Receive webhook events from LINE Official Account.
 
@@ -321,7 +392,7 @@ Other event types:
 
 ---
 
-### 5. POST /api/webhook (Alias)
+### 6. POST /api/webhook (Alias)
 
 **Description:** Alias to `/api/line/webhook`. Same implementation, different URL path.
 

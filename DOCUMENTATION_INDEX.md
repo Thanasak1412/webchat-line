@@ -1,53 +1,43 @@
 # Documentation Index
 
-A guide to all documentation files in this project.
+A comprehensive guide to all documentation files in this project.
 
 ---
 
-## 📚 Getting Started
+## 📚 Admin Webchat System (NEW!) 🎉
 
-**Start here if you're new:**
+**Complete multi-user chat system for LINE Official Account.**
 
-1. **[START_HERE.md](./START_HERE.md)** - First steps, setup, deploy (20 min read)
-2. **[README.md](./README.md)** - Full documentation with API reference (30 min read)
-3. **[SETUP.md](./SETUP.md)** - Detailed setup instructions for each platform
+Start here:
+
+1. **[GETTING_STARTED.md](./GETTING_STARTED.md)** - 15-minute setup guide (READ THIS FIRST!)
+2. **[QUICKSTART.md](./QUICKSTART.md)** - 5-minute summary for quick reference
+3. **[ADMIN_WEBCHAT_GUIDE.md](./ADMIN_WEBCHAT_GUIDE.md)** - Complete feature documentation
+4. **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Troubleshooting and debugging
+
+### System Overview
+
+- **Admin UI:** Two-pane chat interface (users list + chat window)
+- **Real-time:** SSE updates with polling fallback
+- **Multi-user:** Chat with unlimited LINE users separately
+- **API:** 5 endpoints for messages, streaming, and webhooks
+- **Storage:** In-memory per-user message history
+- **Type-safe:** 100% TypeScript
+
+### Documentation Files
+
+| File | Purpose | Read Time |
+|------|---------|-----------|
+| [GETTING_STARTED.md](./GETTING_STARTED.md) | Complete setup guide | 15 min |
+| [QUICKSTART.md](./QUICKSTART.md) | Quick reference | 5 min |
+| [ADMIN_WEBCHAT_GUIDE.md](./ADMIN_WEBCHAT_GUIDE.md) | Full feature docs | 20 min |
+| [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) | Technical architecture | 15 min |
+| [TESTING_GUIDE.md](./TESTING_GUIDE.md) | Troubleshooting guide | 20 min |
+| [VERIFICATION_CHECKLIST.md](./VERIFICATION_CHECKLIST.md) | What was built | 10 min |
 
 ---
 
 ## 🎯 Feature Guides
-
-### Target Discovery (NEW!) ✨
-
-Automatically discover user/group/room IDs and send targeted messages.
-
-- **[TARGET_DISCOVERY_OVERVIEW.md](./TARGET_DISCOVERY_OVERVIEW.md)** - High-level feature explanation
-- **[LINE_TARGET_DISCOVERY.md](./LINE_TARGET_DISCOVERY.md)** - Complete API + usage guide
-- **[EXAMPLES.md](./EXAMPLES.md)** - Practical code examples (cURL, JS, Python)
-
-### Architecture & Design
-
-- **[PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md)** - Technical architecture overview
-- **[COMPLETION_SUMMARY.md](./COMPLETION_SUMMARY.md)** - What's been built and tested
-
----
-
-## 🔧 API Reference
-
-### Core Endpoints
-
-- **`GET /api/messages`** - Get all chat messages
-  - See: [README.md § API Documentation](./README.md#-api-documentation)
-
-- **`POST /api/send-message`** - Send message to LINE
-  - See: [README.md § API Documentation](./README.md#-api-documentation)
-
-- **`POST /api/webhook`** - Receive messages from LINE
-  - See: [README.md § API Documentation](./README.md#-api-documentation)
-
-### Target Discovery APIs (NEW)
-
-- **`GET /api/line/targets`** - Get discovered targets
-  - See: [LINE_TARGET_DISCOVERY.md § GET /api/line/targets](./LINE_TARGET_DISCOVERY.md#1-get-apilinetargets)
 
 - **`GET /api/line/targets/stats`** - Get target statistics
   - See: [LINE_TARGET_DISCOVERY.md § GET /api/line/targets/stats](./LINE_TARGET_DISCOVERY.md#2-get-apilinetargetsstats)
