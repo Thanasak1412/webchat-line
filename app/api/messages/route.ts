@@ -11,7 +11,7 @@ export async function GET(
 
     // If no userId provided, return list of active users
     if (!userId) {
-      const users = getActiveUsers();
+      const users = await getActiveUsers();
       return NextResponse.json<ApiSuccessResponse<{ users: string[]; messages: ChatMessage[] }>>(
         {
           success: true,
@@ -25,7 +25,7 @@ export async function GET(
     }
 
     // Return messages for specific user
-    const messages = getMessages(userId);
+    const messages = await getMessages(userId);
     return NextResponse.json<ApiSuccessResponse<{ users: string[]; messages: ChatMessage[] }>>(
       {
         success: true,

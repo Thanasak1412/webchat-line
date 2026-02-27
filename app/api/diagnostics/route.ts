@@ -14,16 +14,21 @@ import { getMessages, getActiveUsers } from "@/lib/chatStore";
 export async function GET() {
   const channelSecret = process.env.LINE_CHANNEL_SECRET;
   const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  const activeUsers = getActiveUsers();
+  const activeUsers = await getActiveUsers();
 
   // Collect all messages for stats
   const allMessages: ChatMessage[] = [];
-  activeUsers.forEach((userId) => {
-    const userMessages = getMessages(userId);
+  const messagesPerUser: Record<string, number> = {};
+
+  for (const userId of activeUsers) {
+    const userMessages = await getMessages(userId);
     if (userMessages) {
       allMessages.push(...userMessages);
+      messagesPerUser[userId] = userMessages.length;
+    } else {
+      messagesPerUser[userId] = 0;
     }
-  });
+  }
 
   const response = {
     status: "ok" as const,
@@ -41,12 +46,7 @@ export async function GET() {
       total_users: activeUsers.length,
       total_messages: allMessages.length,
       active_users: activeUsers,
-      messages_per_user: Object.fromEntries(
-        activeUsers.map((userId) => {
-          const userMsgs = getMessages(userId);
-          return [userId, userMsgs?.length || 0];
-        })
-      ),
+      messages_per_user: messagesPerUser,
     },
     sse: {
       endpoint: "/api/stream",

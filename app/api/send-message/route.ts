@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     // Save to local store
-    appendMessage(userId, text, "me");
+    await appendMessage(userId, text, "me");
 
     return NextResponse.json({ ok: true, userId, text }, { status: 200 });
   } catch (error) {

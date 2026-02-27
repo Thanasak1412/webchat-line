@@ -138,14 +138,15 @@ export async function POST(request: Request) {
     console.log(`\n📋 Step 6: Save to Message Store`);
     console.log(`   📦 Processing ${messagesWithUsers.length} message(s)...`);
 
-    messagesWithUsers.forEach(({ userId, text, timestamp }, index) => {
-      const savedMessage = appendMessage(userId, text, "line");
-      console.log(`   [${index + 1}/${messagesWithUsers.length}] ✓ Saved`);
+    for (let i = 0; i < messagesWithUsers.length; i++) {
+      const { userId, text } = messagesWithUsers[i];
+      const savedMessage = await appendMessage(userId, text, "line");
+      console.log(`   [${i + 1}/${messagesWithUsers.length}] ✓ Saved`);
       console.log(`       ├─ User: ${userId}`);
       console.log(`       ├─ Text: "${text}"`);
       console.log(`       ├─ Message ID: ${savedMessage.id}`);
       console.log(`       └─ Stored at: ${savedMessage.createdAt}`);
-    });
+    }
 
     // Step 7: Success response
     const duration = Date.now() - startTime;

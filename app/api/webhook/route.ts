@@ -39,7 +39,7 @@ export async function POST(req: Request) {
           if (userId && text) {
             console.log(`Received message from ${userId}: ${text}`);
             // Save to chat store so it appears in the UI
-            appendMessage(userId, text, "line");
+            await appendMessage(userId, text, "line");
           }
         }
       }

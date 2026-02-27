@@ -348,7 +348,6 @@ export default function ChatUI() {
                   <h2 className="font-semibold text-gray-900">
                     {profile.displayName}
                   </h2>
-                  <p className="text-xs text-gray-600">{selectedUserId}</p>
                 </div>
               </div>
             );
